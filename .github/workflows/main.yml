@@ -1,0 +1,72 @@
+name: Build Media Toolkit for Windows
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Install Python dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          pip install PySide6 yt-dlp pyinstaller
+
+      - name: Download FFmpeg
+        shell: pwsh
+        run: |
+          Invoke-WebRequest `
+            -Uri "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" `
+            -OutFile "ffmpeg.zip"
+
+          Expand-Archive -Path "ffmpeg.zip" -DestinationPath "ffmpeg_extract"
+
+          $ffmpeg = Get-ChildItem `
+            -Path "ffmpeg_extract" `
+            -Filter "ffmpeg.exe" `
+            -Recurse |
+            Select-Object -First 1
+
+          if (-not $ffmpeg) {
+            throw "ffmpeg.exe was not found."
+          }
+
+          New-Item -ItemType Directory -Force -Path "bin" | Out-Null
+          Copy-Item $ffmpeg.FullName "bin\ffmpeg.exe"
+
+      - name: Build Media Toolkit
+        shell: pwsh
+        run: |
+          pyinstaller `
+            --noconfirm `
+            --clean `
+            --windowed `
+            --name "Media Toolkit" `
+            --add-binary "bin\ffmpeg.exe;." `
+            "main.py"
+
+      - name: Verify build
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "dist\Media Toolkit\Media Toolkit.exe")) {
+            throw "Media Toolkit.exe was not created."
+          }
+
+          Get-ChildItem "dist\Media Toolkit" -Recurse
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Media-Toolkit-Windows
+          path: "dist/Media Toolkit/"
+          retention-days: 30
