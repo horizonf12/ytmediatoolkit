@@ -1,0 +1,35 @@
+MEDIA TOOLKIT — FINAL MAC RELEASE
+
+1) Put these files next to main.py in ~/yt-downloader/:
+   - main.py
+   - release_mac.sh
+   - make_icon.py
+
+2) Make the icon:
+   cd ~/yt-downloader
+   source venv/bin/activate
+   python make_icon.py
+   iconutil -c icns "Media Toolkit.iconset" -o "Media Toolkit.icns"
+
+3) Build the release:
+   chmod +x release_mac.sh
+   ./release_mac.sh
+
+4) Your distributable file will be:
+   dist/Media Toolkit.dmg
+
+OPTIONAL SIGNING
+Set the Developer ID Application certificate identity first:
+   security find-identity -v -p codesigning
+Then:
+   export DEVELOPER_ID_APPLICATION="Developer ID Application: Your Name (TEAMID)"
+   ./release_mac.sh
+
+OPTIONAL NOTARIZATION
+Store your Apple notarization credentials in the macOS Keychain with notarytool:
+   xcrun notarytool store-credentials "MediaToolkitNotary" --apple-id "you@example.com" --team-id "TEAMID"
+Then export:
+   export NOTARY_PROFILE="MediaToolkitNotary"
+Run the release script again.
+
+The script signs before creating the DMG. If NOTARY_PROFILE is set, it submits the DMG, waits for Apple's result, staples the ticket, and validates it.
